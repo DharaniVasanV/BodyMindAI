@@ -1,0 +1,27 @@
+.body-model-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.body-svg {
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  filter: drop-shadow(0 0 20px rgba(255, 107, 43, 0.15));
+}
+
+.body-part {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.body-part:hover {
+  opacity: 0.85;
+  filter: brightness(1.3);
+}
+
+.body-part.active {
+  filter: brightness(1.4) drop-shadow(0 0 6px #ff6b2b);
+}

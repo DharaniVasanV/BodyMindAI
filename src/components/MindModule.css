@@ -1,0 +1,258 @@
+.mind-module {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.brain-section { padding: 20px; }
+
+.brain-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.brain-svg {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  filter: drop-shadow(0 0 15px rgba(34,211,238,0.15));
+}
+
+.brain-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Assessment Form */
+.assessment-form {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.mind-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mind-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mind-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-emoji {
+  font-size: 22px;
+}
+
+.score-num {
+  font-size: 20px;
+  font-weight: 800;
+  transition: color 0.3s;
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Concentration buttons */
+.mind-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.concentrate-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.concentrate-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  background: var(--navy-700);
+  border: 1px solid var(--glass-border-light);
+  border-radius: 12px;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 80px;
+}
+
+.concentrate-btn:hover {
+  border-color: var(--orange-500);
+}
+
+.concentrate-icon {
+  font-size: 24px;
+}
+
+/* Social withdrawal */
+.withdrawal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Results */
+.mind-results {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.scores-grid {
+  padding: 20px;
+}
+
+.scores-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.score-cards {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.score-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.score-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.score-ring-wrap { /* ring container */ }
+
+/* Insight cards */
+.insight-card {
+  display: flex;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 14px;
+  align-items: flex-start;
+}
+
+.insight-card.warning {
+  background: rgba(239,68,68,0.06);
+  border-color: rgba(239,68,68,0.25);
+}
+
+.insight-card.crisis {
+  background: rgba(239,68,68,0.12);
+  border-color: rgba(239,68,68,0.4);
+  animation: blink-emergency 2s ease-in-out infinite;
+}
+
+.insight-card.good {
+  background: rgba(74,222,128,0.06);
+  border-color: rgba(74,222,128,0.2);
+}
+
+.insight-card.info {
+  background: rgba(34,211,238,0.05);
+  border-color: rgba(34,211,238,0.15);
+}
+
+.insight-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.insight-body {
+  flex: 1;
+}
+
+.insight-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.insight-detail {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.helpline-box {
+  margin-top: 12px;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.2);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.helpline-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--red-400);
+  margin-bottom: 6px;
+}
+
+.helpline-num {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-bottom: 3px;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .mind-module { padding: 12px; }
+  .assessment-form { padding: 16px; }
+  .concentrate-buttons { gap: 8px; }
+  .concentrate-btn { min-height: 70px; font-size: 12px; }
+}
