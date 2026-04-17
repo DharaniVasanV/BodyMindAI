@@ -3,12 +3,13 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Environment, ContactShadows, Html, PerspectiveCamera, Center, Stage } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Map layers to file paths
+// Map layers to GitHub raw LFS file paths for bypassing Vercel static limits in Production
+const isProd = import.meta.env.PROD;
 const MODEL_PATHS = {
-  skin: '/models/human/scene.gltf',
-  muscle: '/models/myology/scene.gltf',
-  organ: '/models/splanchnology/scene.gltf',
-  skeletal: '/models/human_skeleton/scene.gltf',
+  skin: isProd ? 'https://raw.githubusercontent.com/DharaniVasanV/BodyMindAI/main/public/models/human/scene.gltf' : '/models/human/scene.gltf',
+  muscle: isProd ? 'https://raw.githubusercontent.com/DharaniVasanV/BodyMindAI/main/public/models/myology/scene.gltf' : '/models/myology/scene.gltf',
+  organ: isProd ? 'https://raw.githubusercontent.com/DharaniVasanV/BodyMindAI/main/public/models/splanchnology/scene.gltf' : '/models/splanchnology/scene.gltf',
+  skeletal: isProd ? 'https://raw.githubusercontent.com/DharaniVasanV/BodyMindAI/main/public/models/human_skeleton/scene.gltf' : '/models/human_skeleton/scene.gltf',
 };
 
 // Component to render a specific layer with selection logic
