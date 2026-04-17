@@ -51,3 +51,10 @@ Switch to the **"Mind"** tab via the top-left navigation.
 1. `npm install`
 2. `npm run dev`
 *(Note: Requires Git LFS to pull the large 3D GLTF models located in `/public/models/`)*
+
+## Deployment Note
+The anatomy assets under `public/models/` are currently stored in Git LFS. Local development works when Git LFS has pulled the real files, but platforms that clone the repository without materializing LFS payloads will serve Git LFS pointer text instead of the actual `.gltf` and `.bin` files.
+
+For production deployments, host the model files on object storage/CDN and set `VITE_MODEL_BASE_URL` to that public base URL, for example:
+
+`VITE_MODEL_BASE_URL=https://your-cdn.example.com/models/`

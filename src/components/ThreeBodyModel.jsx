@@ -3,7 +3,8 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Html, Center, Stage } from '@react-three/drei';
 import * as THREE from 'three';
 
-const modelPath = (relativePath) => `${import.meta.env.BASE_URL}${relativePath}`;
+const MODEL_BASE_URL = import.meta.env.VITE_MODEL_BASE_URL || import.meta.env.BASE_URL;
+const modelPath = (relativePath) => `${MODEL_BASE_URL}${relativePath}`;
 
 const MODEL_PATHS = {
   skin: modelPath('models/human/scene.gltf'),
