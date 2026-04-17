@@ -1,5 +1,5 @@
 import React, { Suspense, useState, useRef, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Html, Center, Stage } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -21,6 +21,7 @@ const MODEL_PATHS = {
 function ModelLayer({ layer, onPartClick, activePart }) {
   const { scene } = useGLTF(MODEL_PATHS[layer]);
   const [hovered, setHovered] = useState(null);
+  const [dynamicScale, setDynamicScale] = useState(null);
 
   const getPartId = (meshName) => {
     const name = meshName.toLowerCase().replace(/_/g, ' ');
@@ -90,13 +91,33 @@ function ModelLayer({ layer, onPartClick, activePart }) {
     });
   }, [scene, activePart, hovered, layer]);
 
+  useEffect(() => {
+    if (layer !== 'muscle') {
+      setDynamicScale(null);
+      return;
+    }
+
+    scene.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(scene);
+    const size = box.getSize(new THREE.Vector3());
+
+    if (!Number.isFinite(size.y) || size.y <= 0) {
+      setDynamicScale(null);
+      return;
+    }
+
+    // Normalize replacement muscle assets so they stay inside the fixed camera framing.
+    const fittedScale = THREE.MathUtils.clamp(3.4 / size.y, 0.01, 25);
+    setDynamicScale(fittedScale);
+  }, [scene, layer]);
+
   // Manual scale fine-tuning to normalize assets from different sources
   const getScale = () => {
     switch(layer) {
       case 'skin': return 0.015;    // Align with skeleton
       case 'skeletal': return 12.0; // Optimized scale for full-body centering
       case 'organ': return 1.15;    // Align with torso
-      case 'muscle': return 1.15;   // Align with torso
+      case 'muscle': return dynamicScale ?? 1.15;
       default: return 1.0;
     }
   };
