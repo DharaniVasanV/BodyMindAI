@@ -1,15 +1,15 @@
 import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, useGLTF, Environment, ContactShadows, Html, PerspectiveCamera, Center, Stage } from '@react-three/drei';
+import { OrbitControls, useGLTF, Html, Center, Stage } from '@react-three/drei';
 import * as THREE from 'three';
 
-// Map layers to GitHub raw LFS file paths for bypassing Vercel static limits in Production
-const isProd = import.meta.env.PROD;
+const modelPath = (relativePath) => `${import.meta.env.BASE_URL}${relativePath}`;
+
 const MODEL_PATHS = {
-  skin: isProd ? 'https://raw.githubusercontent.com/DharaniVasanV/BodyMindAI/main/public/models/human/scene.gltf' : '/models/human/scene.gltf',
-  muscle: isProd ? 'https://raw.githubusercontent.com/DharaniVasanV/BodyMindAI/main/public/models/myology/scene.gltf' : '/models/myology/scene.gltf',
-  organ: isProd ? 'https://raw.githubusercontent.com/DharaniVasanV/BodyMindAI/main/public/models/splanchnology/scene.gltf' : '/models/splanchnology/scene.gltf',
-  skeletal: isProd ? 'https://raw.githubusercontent.com/DharaniVasanV/BodyMindAI/main/public/models/human_skeleton/scene.gltf' : '/models/human_skeleton/scene.gltf',
+  skin: modelPath('models/human/scene.gltf'),
+  muscle: modelPath('models/myology/scene.gltf'),
+  organ: modelPath('models/splanchnology/scene.gltf'),
+  skeletal: modelPath('models/human_skeleton/scene.gltf'),
 };
 
 // Component to render a specific layer with selection logic
