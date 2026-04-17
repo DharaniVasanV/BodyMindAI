@@ -4,7 +4,11 @@ import { OrbitControls, useGLTF, Html, Center, Stage } from '@react-three/drei';
 import * as THREE from 'three';
 
 const MODEL_BASE_URL = import.meta.env.VITE_MODEL_BASE_URL || import.meta.env.BASE_URL;
-const modelPath = (relativePath) => `${MODEL_BASE_URL}${relativePath}`;
+const MODEL_ASSET_VERSION = import.meta.env.VITE_MODEL_ASSET_VERSION;
+const modelPath = (relativePath) => {
+  const url = `${MODEL_BASE_URL}${relativePath}`;
+  return MODEL_ASSET_VERSION ? `${url}?v=${encodeURIComponent(MODEL_ASSET_VERSION)}` : url;
+};
 
 const MODEL_PATHS = {
   skin: modelPath('models/human/scene.gltf'),
