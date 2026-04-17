@@ -22,6 +22,7 @@ function ModelLayer({ layer, onPartClick, activePart }) {
   const { scene } = useGLTF(MODEL_PATHS[layer]);
   const [hovered, setHovered] = useState(null);
   const [dynamicScale, setDynamicScale] = useState(null);
+  const [dynamicPosition, setDynamicPosition] = useState([0, 0, 0]);
 
   const getPartId = (meshName) => {
     const name = meshName.toLowerCase().replace(/_/g, ' ');
@@ -94,21 +95,25 @@ function ModelLayer({ layer, onPartClick, activePart }) {
   useEffect(() => {
     if (layer !== 'muscle') {
       setDynamicScale(null);
+      setDynamicPosition([0, 0, 0]);
       return;
     }
 
     scene.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(scene);
+    const center = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
 
     if (!Number.isFinite(size.y) || size.y <= 0) {
       setDynamicScale(null);
+      setDynamicPosition([0, 0, 0]);
       return;
     }
 
     // Normalize replacement muscle assets so they stay inside the fixed camera framing.
     const fittedScale = THREE.MathUtils.clamp(3.4 / size.y, 0.01, 25);
     setDynamicScale(fittedScale);
+    setDynamicPosition([-center.x, -center.y, -center.z]);
   }, [scene, layer]);
 
   // Manual scale fine-tuning to normalize assets from different sources
@@ -122,21 +127,22 @@ function ModelLayer({ layer, onPartClick, activePart }) {
     }
   };
 
-  return (
-    <Center>
-      <primitive 
-        object={scene} 
-        scale={getScale()}
-        onPointerOver={(e) => { e.stopPropagation(); setHovered(e.object.name); }}
-        onPointerOut={() => setHovered(null)}
-        onClick={(e) => {
-          e.stopPropagation();
-          const partId = getPartId(e.object.name);
-          if (partId) onPartClick({ id: partId, label: partId.replace(/-/g, ' ') });
-        }}
-      />
-    </Center>
+  const modelPrimitive = (
+    <primitive 
+      object={scene}
+      position={layer === 'muscle' ? dynamicPosition : undefined}
+      scale={getScale()}
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(e.object.name); }}
+      onPointerOut={() => setHovered(null)}
+      onClick={(e) => {
+        e.stopPropagation();
+        const partId = getPartId(e.object.name);
+        if (partId) onPartClick({ id: partId, label: partId.replace(/-/g, ' ') });
+      }}
+    />
   );
+
+  return layer === 'muscle' ? modelPrimitive : <Center>{modelPrimitive}</Center>;
 }
 
 const LoadingIndicator = () => (
