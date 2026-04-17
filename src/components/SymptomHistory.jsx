@@ -1,241 +1,207 @@
-import { useState, useEffect } from 'react';
-import { loadSymptoms, loadMindEntries, getWeeklySummary } from '../utils/storage';
-import './SymptomHistory.css';
+import React, { Suspense, useState, useRef, useEffect } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, useGLTF, Html, Center, Stage } from '@react-three/drei';
+import * as THREE from 'three';
 
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MODEL_BASE_URL = import.meta.env.VITE_MODEL_BASE_URL || import.meta.env.BASE_URL;
+const MODEL_ASSET_VERSION = import.meta.env.VITE_MODEL_ASSET_VERSION;
+const modelPath = (relativePath) => {
+  const url = `${MODEL_BASE_URL}${relativePath}`;
+  return MODEL_ASSET_VERSION ? `${url}?v=${encodeURIComponent(MODEL_ASSET_VERSION)}` : url;
+};
 
-function getDaysInMonth(year, month) {
-  return new Date(year, month + 1, 0).getDate();
-}
+const MODEL_PATHS = {
+  skin: modelPath('models/human/scene.gltf'),
+  muscle: modelPath('models/myology/scene.gltf'),
+  organ: modelPath('models/splanchnology/scene.gltf'),
+  skeletal: modelPath('models/human_skeleton/scene.gltf'),
+};
 
-function getFirstDayOfMonth(year, month) {
-  return new Date(year, month, 1).getDay();
-}
+// Component to render a specific layer with selection logic
+function ModelLayer({ layer, onPartClick, activePart }) {
+  const { scene } = useGLTF(MODEL_PATHS[layer]);
+  const [hovered, setHovered] = useState(null);
+  const [dynamicScale, setDynamicScale] = useState(null);
+  const [dynamicPosition, setDynamicPosition] = useState([0, 0, 0]);
 
-export default function SymptomHistory() {
-  const [symptoms, setSymptoms] = useState([]);
-  const [mindEntries, setMindEntries] = useState([]);
-  const [weeklySummary, setWeeklySummary] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const now = new Date();
-  const [calYear, setCalYear] = useState(now.getFullYear());
-  const [calMonth, setCalMonth] = useState(now.getMonth());
+  const getPartId = (meshName) => {
+    const name = meshName.toLowerCase().replace(/_/g, ' ');
+    if (name.includes('head') || name.includes('skull') || name.includes('brain') || name.includes('crane')) return 'head';
+    if (name.includes('neck') || name.includes('cervical') || name.includes('throat')) return 'neck';
+    if (name.includes('chest') || name.includes('thorax') || name.includes('ribs') || name.includes('sternum') || name.includes('lung') || name.includes('heart') || name.includes('pectoral')) return 'chest';
+    if (name.includes('stomach') || name.includes('liver') || name.includes('gastric') || name.includes('digestive')) return 'stomach';
+    if (name.includes('abdomen') || name.includes('intestine') || name.includes('colon') || name.includes('pelvis')) return 'lower-abdomen';
+    if (name.includes('shoulder') || name.includes('scapula') || name.includes('clavicle')) {
+      if (name.includes('left') || name.includes('_l')) return 'left-shoulder';
+      if (name.includes('right') || name.includes('_r')) return 'right-shoulder';
+      return 'left-shoulder';
+    }
+    if (name.includes('arm') || name.includes('humerus') || name.includes('bicep') || name.includes('hand') || name.includes('radius') || name.includes('ulna')) {
+      if (name.includes('left') || name.includes('_l')) return 'left-arm';
+      if (name.includes('right') || name.includes('_r')) return 'right-arm';
+      return 'left-arm';
+    }
+    if (name.includes('leg') || name.includes('femur') || name.includes('calf') || name.includes('thigh') || name.includes('foot') || name.includes('tibia') || name.includes('fibula')) {
+      if (name.includes('left') || name.includes('_l')) return 'left-leg';
+      if (name.includes('right') || name.includes('_r')) return 'right-leg';
+      return 'left-leg';
+    }
+    if (name.includes('back') || name.includes('spine') || name.includes('vertebra')) {
+      if (name.includes('lumbar') || name.includes('sacrum') || name.includes('lower')) return 'lower-back';
+      return 'back';
+    }
+    if (name.includes('torso') || name.includes('body') || name.includes('trunk')) return 'stomach';
+    return null;
+  };
 
   useEffect(() => {
-    setSymptoms(loadSymptoms());
-    setMindEntries(loadMindEntries());
-    setWeeklySummary(getWeeklySummary());
-  }, []);
+    scene.traverse((object) => {
+      if (object.isMesh) {
+        // Hide skeletal parts in organ layer specifically
+        if (layer === 'organ') {
+          const matName = object.material?.name?.toLowerCase() || '';
+          const meshName = object.name.toLowerCase();
+          if (matName.includes('bone') || matName.includes('skele') || meshName.includes('bone')) {
+            object.visible = false;
+          } else {
+            object.visible = true;
+          }
+        } else {
+          object.visible = true;
+        }
 
-  const daysInMonth = getDaysInMonth(calYear, calMonth);
-  const firstDay = getFirstDayOfMonth(calYear, calMonth);
+        if (layer === 'skin' && !object.material.map) {
+          object.material.color = new THREE.Color('#d2b48c');
+        }
+        
+        const partId = getPartId(object.name);
+        const isActive = activePart === partId;
+        const isHovered = hovered === object.name;
+        
+        if (isActive) {
+          object.material.emissive = new THREE.Color('#ff6b2b');
+          object.material.emissiveIntensity = 0.5;
+        } else if (isHovered) {
+          object.material.emissive = new THREE.Color('#ffaa80');
+          object.material.emissiveIntensity = 0.2;
+        } else {
+          object.material.emissive = new THREE.Color(0, 0, 0);
+          object.material.emissiveIntensity = 0;
+        }
+      }
+    });
+  }, [scene, activePart, hovered, layer]);
 
-  // Map date -> entries
-  const dateMap = {};
-  symptoms.forEach(s => {
-    const d = new Date(s.date);
-    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    if (!dateMap[key]) dateMap[key] = [];
-    dateMap[key].push({...s, type:'body'});
-  });
-  mindEntries.forEach(m => {
-    const d = new Date(m.date);
-    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-    if (!dateMap[key]) dateMap[key] = [];
-    dateMap[key].push({...m, type:'mind'});
-  });
+  useEffect(() => {
+    if (layer !== 'muscle') {
+      setDynamicScale(null);
+      setDynamicPosition([0, 0, 0]);
+      return;
+    }
 
-  const selectedKey = selectedDate 
-    ? `${selectedDate.getFullYear()}-${selectedDate.getMonth()}-${selectedDate.getDate()}`
-    : null;
+    scene.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(scene);
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
 
-  const selectedEntries = selectedKey ? (dateMap[selectedKey] || []) : [];
+    if (!Number.isFinite(size.y) || size.y <= 0) {
+      setDynamicScale(null);
+      setDynamicPosition([0, 0, 0]);
+      return;
+    }
 
-  const prevMonth = () => {
-    if (calMonth === 0) { setCalMonth(11); setCalYear(y => y-1); }
-    else setCalMonth(m => m-1);
-    setSelectedDate(null);
+    // Normalize replacement muscle assets so they stay inside the fixed camera framing.
+    const fittedScale = THREE.MathUtils.clamp(3.4 / size.y, 0.01, 25);
+    setDynamicScale(fittedScale);
+    setDynamicPosition([-center.x, -center.y, -center.z]);
+  }, [scene, layer]);
+
+  // Manual scale fine-tuning to normalize assets from different sources
+  const getScale = () => {
+    switch(layer) {
+      case 'skin': return 0.015;    // Align with skeleton
+      case 'skeletal': return 12.0; // Optimized scale for full-body centering
+      case 'organ': return 1.15;    // Align with torso
+      case 'muscle': return dynamicScale ?? 1.15;
+      default: return 1.0;
+    }
   };
-  const nextMonth = () => {
-    if (calMonth === 11) { setCalMonth(0); setCalYear(y => y+1); }
-    else setCalMonth(m => m+1);
-    setSelectedDate(null);
-  };
+
+  const modelPrimitive = (
+    <primitive 
+      object={scene}
+      position={layer === 'muscle' ? dynamicPosition : undefined}
+      scale={getScale()}
+      onPointerOver={(e) => { e.stopPropagation(); setHovered(e.object.name); }}
+      onPointerOut={() => setHovered(null)}
+      onClick={(e) => {
+        e.stopPropagation();
+        const partId = getPartId(e.object.name);
+        if (partId) onPartClick({ id: partId, label: partId.replace(/-/g, ' ') });
+      }}
+    />
+  );
+
+  return layer === 'muscle' ? modelPrimitive : <Center>{modelPrimitive}</Center>;
+}
+
+const LoadingIndicator = () => (
+  <Html center>
+    <div className="loader-wrap">
+      <div className="loader-ring"/>
+      <div className="loader-icon">🩺</div>
+      <p style={{color:'white', marginTop: '60px', whiteSpace: 'nowrap', fontSize: '11px', textAlign:'center'}}>
+        Synchronizing Anatomical Assets...
+      </p>
+    </div>
+  </Html>
+);
+
+export default function ThreeBodyModel({ activePart, onPartClick, layer, view, interactionEnabled = true }) {
+  const controlsRef = useRef();
+
+  useEffect(() => {
+    if (controlsRef.current) {
+      if (view === 'back') controlsRef.current.setAzimuthalAngle(Math.PI);
+      else controlsRef.current.setAzimuthalAngle(0);
+    }
+  }, [view]);
 
   return (
-    <div className="symptom-history">
-      {/* Weekly Summary */}
-      {weeklySummary ? (
-        <div className="glass-card-orange weekly-card fade-in">
-          <div className="weekly-header">
-            <div className="weekly-icon">📊</div>
-            <div>
-              <h2 className="weekly-title">Weekly Health Summary</h2>
-              <p className="weekly-sub">Last 7 days overview</p>
-            </div>
-            <div className={`trend-badge ${weeklySummary.trend}`}>
-              {weeklySummary.trend === 'improving' ? '📈 Improving' : 
-               weeklySummary.trend === 'moderate' ? '➡️ Stable' : '📉 Worsening'}
-            </div>
-          </div>
-          <div className="weekly-stats">
-            <div className="stat-item">
-              <span className="stat-value">{weeklySummary.totalEntries}</span>
-              <span className="stat-label">Entries</span>
-            </div>
-            <div className="stat-divider"/>
-            <div className="stat-item">
-              <span className="stat-value">{weeklySummary.avgPain}</span>
-              <span className="stat-label">Avg Pain</span>
-            </div>
-            <div className="stat-divider"/>
-            <div className="stat-item">
-              <span className="stat-value" style={{textTransform:'capitalize', fontSize:'14px'}}>
-                {weeklySummary.mostFrequentPart?.replace(/-/g,' ')}
-              </span>
-              <span className="stat-label">Most Frequent</span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="glass-card empty-summary">
-          <p className="empty-title">📊 No weekly data yet</p>
-          <p className="empty-sub">Start logging symptoms using the Body or Mind tabs to see your weekly health summary</p>
-        </div>
-      )}
-
-      {/* Calendar */}
-      <div className="glass-card calendar-wrap">
-        <div className="cal-header">
-          <button className="cal-nav-btn" onClick={prevMonth} id="cal-prev">‹</button>
-          <h3 className="cal-title">{MONTHS[calMonth]} {calYear}</h3>
-          <button className="cal-nav-btn" onClick={nextMonth} id="cal-next">›</button>
-        </div>
-
-        <div className="cal-grid">
-          {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-            <div key={d} className="cal-day-label">{d}</div>
-          ))}
-          {/* Empty cells */}
-          {Array.from({length: firstDay}).map((_, i) => (
-            <div key={`empty-${i}`} className="cal-cell empty"/>
-          ))}
-          {/* Day cells */}
-          {Array.from({length: daysInMonth}).map((_, i) => {
-            const day = i + 1;
-            const key = `${calYear}-${calMonth}-${day}`;
-            const hasEntries = !!dateMap[key];
-            const bodyCount = dateMap[key]?.filter(e=>e.type==='body').length || 0;
-            const mindCount = dateMap[key]?.filter(e=>e.type==='mind').length || 0;
-            const isToday = day === now.getDate() && calMonth === now.getMonth() && calYear === now.getFullYear();
-            const isSelected = selectedDate?.getDate() === day && selectedDate?.getMonth() === calMonth;
-
-            return (
-              <button
-                key={day}
-                className={`cal-cell ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''} ${hasEntries ? 'has-entry' : ''}`}
-                onClick={() => setSelectedDate(new Date(calYear, calMonth, day))}
-                id={`cal-day-${day}`}
-              >
-                <span className="cal-day-num">{day}</span>
-                {hasEntries && (
-                  <div className="entry-dots">
-                    {bodyCount > 0 && <span className="dot orange">{bodyCount}</span>}
-                    {mindCount > 0 && <span className="dot cyan">{mindCount}</span>}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="cal-legend">
-          <span><span className="dot orange small"/> Body Symptoms</span>
-          <span><span className="dot cyan small"/> Mind Entries</span>
-        </div>
+    <div className="three-body-model" style={{ width: '100%', height: '500px', cursor: 'grab', position: 'relative' }}>
+      <Canvas shadows dpr={[1, 2]} camera={{ position: [0, 1.5, 5], fov: 42 }}>
+        <Suspense fallback={<LoadingIndicator />}>
+          <Stage 
+            environment="city" 
+            intensity={0.6} 
+            contactShadow={true} 
+            shadows={true} 
+            adjustCamera={false}
+          >
+            <ModelLayer 
+              layer={layer} 
+              onPartClick={onPartClick} 
+              activePart={activePart} 
+            />
+          </Stage>
+        </Suspense>
+        <OrbitControls 
+          ref={controlsRef}
+          enabled={interactionEnabled}
+          enablePan={false}
+          enableZoom={true} 
+          minPolarAngle={Math.PI / 4}
+          maxPolarAngle={Math.PI / 1.5}
+          makeDefault
+        />
+      </Canvas>
+      <div className="three-hint" style={{
+        position: 'absolute', bottom: '10px', left: '50%', transform: 'translateX(-50%)',
+        fontSize: '10px', color: 'rgba(255,255,255,0.5)', background: 'rgba(0,0,0,0.3)',
+        padding: '3px 10px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '20px', pointerEvents: 'none'
+      }}>
+        🖱️ Rotate/Zoom • Tap Part To Diagnose
       </div>
-
-      {/* Selected date entries */}
-      {selectedDate && (
-        <div className="glass-card entries-panel fade-in">
-          <h3 className="entries-title">
-            📅 {selectedDate.toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })}
-          </h3>
-          {selectedEntries.length === 0 ? (
-            <p className="no-entries">No health entries recorded on this date</p>
-          ) : (
-            <div className="entries-list">
-              {selectedEntries.map((entry, i) => (
-                <div key={i} className={`entry-item ${entry.type}`}>
-                  <div className="entry-icon">
-                    {entry.type === 'body' ? '🦴' : '🧠'}
-                  </div>
-                  <div className="entry-content">
-                    {entry.type === 'body' ? (
-                      <>
-                        <div className="entry-header">
-                          <span className="entry-type">Body Symptom</span>
-                          <span className="entry-time">
-                            {new Date(entry.date).toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'})}
-                          </span>
-                        </div>
-                        <p className="entry-main">{entry.bodyPart?.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</p>
-                        <div className="entry-meta">
-                          <span className="badge badge-orange">Pain: {entry.painIntensity}/10</span>
-                          <span className="badge badge-cyan">{entry.duration}</span>
-                          {entry.aiDiagnosis && <span className="badge" style={{background:'rgba(168,85,247,0.1)',color:'#c084fc',border:'1px solid rgba(168,85,247,0.2)'}}>
-                            AI: {entry.aiDiagnosis}
-                          </span>}
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="entry-header">
-                          <span className="entry-type">Mind Entry</span>
-                          <span className="entry-time">
-                            {new Date(entry.date).toLocaleTimeString('en-US', {hour:'2-digit', minute:'2-digit'})}
-                          </span>
-                        </div>
-                        <div className="entry-meta">
-                          <span className="badge badge-green">Mood: {entry.mood}/10</span>
-                          <span className="badge badge-cyan">Sleep: {entry.sleep}/10</span>
-                          <span className="badge badge-red">Stress: {entry.stress}/10</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Recent history list */}
-      {symptoms.length > 0 && (
-        <div className="glass-card recent-list">
-          <h3 className="entries-title">📋 Recent Symptom Log</h3>
-          <div className="entries-list">
-            {symptoms.slice(0, 10).map((s, i) => (
-              <div key={i} className="entry-item body">
-                <div className="entry-icon">🦴</div>
-                <div className="entry-content">
-                  <div className="entry-header">
-                    <span className="entry-main">{s.bodyPart?.replace(/-/g,' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>
-                    <span className="entry-time">{new Date(s.date).toLocaleDateString()}</span>
-                  </div>
-                  <div className="entry-meta">
-                    <span className="badge badge-orange">Pain: {s.painIntensity}/10</span>
-                    {s.aiDiagnosis && <span className="badge" style={{background:'rgba(168,85,247,0.1)',color:'#c084fc',border:'1px solid rgba(168,85,247,0.2)'}}>
-                      {s.aiDiagnosis}
-                    </span>}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
